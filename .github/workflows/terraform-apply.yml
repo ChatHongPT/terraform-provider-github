@@ -1,0 +1,60 @@
+name: Terraform Apply
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+  deployments: write
+
+jobs:
+  apply:
+    name: Apply (github)
+    runs-on: ubuntu-latest
+    environment:
+      name: terraform
+      url: ${{ steps.start.outputs.env_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start deployment (requires approval)
+        id: start
+        uses: bobheadxi/deployments@v1
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: terraform
+          ref: ${{ github.ref }}
+          desc: "Run terraform apply on main"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: |
+          terraform init -input=false
+        env:
+          TF_VAR_github_token: ${{ secrets.BOT_TOKEN || secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Terraform Apply
+        id: tfapply
+        run: |
+          terraform apply -auto-approve -input=false
+        env:
+          TF_VAR_github_token: ${{ secrets.BOT_TOKEN || secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Finish deployment
+        if: always()
+        uses: bobheadxi/deployments@v1
+        with:
+          step: finish
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: terraform
+          status: ${{ job.status }}
+          ref: ${{ github.ref }}

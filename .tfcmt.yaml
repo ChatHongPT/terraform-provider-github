@@ -1,0 +1,17 @@
+ci:
+  github:
+    template:
+      body: |
+        CI link
+
+        {{ if .Result.PlanSummary }}
+        Plan: {{ .Result.PlanSummary }}
+        {{ end }}
+
+        {{ if .Result.HasChange }}
+        > Change Result (Click me)
+
+        {{ .Result.Body }}
+        {{ else }}
+        No changes.
+        {{ end }}
