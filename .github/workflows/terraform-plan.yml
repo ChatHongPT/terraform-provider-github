@@ -55,7 +55,7 @@ jobs:
 
       - name: Post Plan result with tfcmt
         if: always()
-        uses: suzuki-shunsuke/tfcmt@v4
+        uses: suzuki-shunsuke/tfcmt@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           template: github
