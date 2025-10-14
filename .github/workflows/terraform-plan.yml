@@ -46,10 +46,16 @@ jobs:
 
       - name: Terraform Plan
         id: plan
+        shell: bash
         continue-on-error: true
         run: |
-          terraform plan -no-color -input=false -out=tfplan.binary | tee plan.log || true
-          terraform show -no-color tfplan.binary > tfplan.txt || true
+          set -o pipefail
+          # detailed-exitcode: 0=no changes, 2=changes present, 1=error
+          terraform plan -detailed-exitcode -no-color -input=false -out=tfplan.binary |& tee plan.log
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+          if [ -f tfplan.binary ]; then
+            terraform show -no-color tfplan.binary > tfplan.txt || true
+          fi
         env:
           TF_VAR_github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
@@ -70,7 +76,7 @@ jobs:
 
             const comment = `## Plan Result (github)
 
-            **Status:** ${process.env.PLAN_OUTCOME || 'unknown'}
+            **Status:** ${process.env.PLAN_OUTCOME || 'unknown'} (exit ${process.env.PLAN_EXIT_CODE || 'n/a'})
 
             **Plan Summary:**
             \`\`\`
@@ -94,6 +100,7 @@ jobs:
             });
         env:
           PLAN_OUTCOME: ${{ steps.plan.outcome }}
+          PLAN_EXIT_CODE: ${{ steps.plan.outputs.exit_code }}
 
       - name: Require deployment review before Apply
         uses: bobheadxi/deployments@v1
