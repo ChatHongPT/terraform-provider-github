@@ -35,14 +35,14 @@ jobs:
         run: |
           terraform init -input=false
         env:
-          TF_VAR_github_token: ${{ secrets.BOT_TOKEN || secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          TF_VAR_github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Terraform Validate
         run: |
           terraform fmt -check
           terraform validate -no-color
         env:
-          TF_VAR_github_token: ${{ secrets.BOT_TOKEN || secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          TF_VAR_github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Terraform Plan
         id: plan
@@ -57,7 +57,7 @@ jobs:
             terraform show -no-color tfplan.binary > tfplan.txt || true
           fi
         env:
-          TF_VAR_github_token: ${{ secrets.BOT_TOKEN || secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          TF_VAR_github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Post Plan result as PR comment
         if: always()
