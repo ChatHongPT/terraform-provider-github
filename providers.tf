@@ -8,6 +8,7 @@ terraform {
 }
 
 provider "github" {
+  owner = "ChatHongPT"
   token = var.github_token
 }
 
