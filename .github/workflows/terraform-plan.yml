@@ -59,24 +59,30 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const planResult = fs.existsSync('tfplan.txt') ? fs.readFileSync('tfplan.txt', 'utf8') : 'No plan output found';
+            const planResult = fs.existsSync('tfplan.txt') ? fs.readFileSync('tfplan.txt', 'utf8') : '';
             const planLog = fs.existsSync('plan.log') ? fs.readFileSync('plan.log', 'utf8') : '';
-            
+
+            const allText = `${planLog}\n${planResult}`;
+            const match = allText.match(/Plan:\s*\d+\s+to add,\s*\d+\s+to change,\s*\d+\s+to destroy\.?/);
+            const summary = match ? match[0] : 'No summary found';
+
+            const fullOutput = (planResult || planLog || 'No plan output found').slice(0, 65000);
+
             const comment = `## Plan Result (github)
-            
+
             **Status:** ${process.env.PLAN_OUTCOME || 'unknown'}
-            
+
             **Plan Summary:**
             \`\`\`
-            ${planLog.split('\n').filter(line => line.includes('Plan:')).join('\n') || 'No summary found'}
+            ${summary}
             \`\`\`
-            
+
             **Full Plan Output:**
             <details>
             <summary>Click to expand</summary>
-            
+
             \`\`\`hcl
-            ${planResult}
+            ${fullOutput}
             \`\`\`
             </details>`;
             
