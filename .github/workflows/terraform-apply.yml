@@ -55,6 +55,5 @@ jobs:
         with:
           step: finish
           token: ${{ secrets.GITHUB_TOKEN }}
-          env: terraform
+          deployment_id: ${{ steps.start.outputs.deployment_id }}
           status: ${{ job.status }}
-          ref: ${{ github.ref }}
