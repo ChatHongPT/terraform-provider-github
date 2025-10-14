@@ -23,7 +23,7 @@ jobs:
 
       - name: Start deployment (requires approval)
         id: start
-        uses: bobheadxi/deployments@v1
+        uses: bobheadxi/deployments@v0.4.1
         with:
           step: start
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -51,7 +51,7 @@ jobs:
 
       - name: Finish deployment
         if: always()
-        uses: bobheadxi/deployments@v1
+        uses: bobheadxi/deployments@v0.4.1
         with:
           step: finish
           token: ${{ secrets.GITHUB_TOKEN }}
