@@ -1,0 +1,76 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+  deployments: write
+
+jobs:
+  plan:
+    name: Plan (github)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
+
+      - name: Terraform Init
+        run: |
+          terraform init -input=false
+        env:
+          TF_VAR_github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Terraform Validate
+        run: |
+          terraform fmt -check
+          terraform validate -no-color
+        env:
+          TF_VAR_github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Terraform Plan
+        id: plan
+        continue-on-error: true
+        run: |
+          terraform plan -no-color -input=false -out=tfplan.binary | tee plan.log || true
+          terraform show -no-color tfplan.binary > tfplan.txt || true
+        env:
+          TF_VAR_github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Post Plan result with tfcmt
+        if: always()
+        uses: suzuki-shunsuke/tfcmt@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          template: github
+          result: ${{ steps.plan.outcome }}
+          working_directory: .
+        env:
+          TFCMT_PR: "true"
+          TFCMT_PLAN: |
+            $(cat tfplan.txt || true)
+
+      - name: Require deployment review before Apply
+        uses: bobheadxi/deployments@v1
+        with:
+          step: start
+          token: ${{ secrets.GITHUB_TOKEN }}
+          env: terraform
+          ref: ${{ github.head_ref }}
+          desc: "terraform needs approval to start deploying changes."
