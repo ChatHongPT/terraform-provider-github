@@ -16,20 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: terraform
-      url: ${{ steps.start.outputs.env_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Start deployment (requires approval)
-        id: start
-        uses: bobheadxi/deployments@v0.4.1
-        with:
-          step: start
-          token: ${{ secrets.GITHUB_TOKEN }}
-          env: terraform
-          ref: ${{ github.ref }}
-          desc: "Run terraform apply on main"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -48,12 +37,3 @@ jobs:
           terraform apply -auto-approve -input=false
         env:
           TF_VAR_github_token: ${{ secrets.BOT_TOKEN || secrets.GH_PAT || secrets.GITHUB_TOKEN }}
-
-      - name: Finish deployment
-        if: always()
-        uses: bobheadxi/deployments@v0.4.1
-        with:
-          step: finish
-          token: ${{ secrets.GITHUB_TOKEN }}
-          deployment_id: ${{ steps.start.outputs.deployment_id }}
-          status: ${{ job.status }}
