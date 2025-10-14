@@ -102,4 +102,3 @@ jobs:
         env:
           PLAN_OUTCOME: ${{ steps.plan.outcome }}
           PLAN_EXIT_CODE: ${{ steps.plan.outputs.exit_code }}
-
