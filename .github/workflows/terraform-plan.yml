@@ -53,18 +53,41 @@ jobs:
         env:
           TF_VAR_github_token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
 
-      - name: Post Plan result with tfcmt
+      - name: Post Plan result as PR comment
         if: always()
-        uses: suzuki-shunsuke/tfcmt@v3.4.2
+        uses: actions/github-script@v7
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          template: github
-          result: ${{ steps.plan.outcome }}
-          working_directory: .
+          script: |
+            const fs = require('fs');
+            const planResult = fs.existsSync('tfplan.txt') ? fs.readFileSync('tfplan.txt', 'utf8') : 'No plan output found';
+            const planLog = fs.existsSync('plan.log') ? fs.readFileSync('plan.log', 'utf8') : '';
+            
+            const comment = `## Plan Result (github)
+            
+            **Status:** ${process.env.PLAN_OUTCOME || 'unknown'}
+            
+            **Plan Summary:**
+            \`\`\`
+            ${planLog.split('\n').filter(line => line.includes('Plan:')).join('\n') || 'No summary found'}
+            \`\`\`
+            
+            **Full Plan Output:**
+            <details>
+            <summary>Click to expand</summary>
+            
+            \`\`\`hcl
+            ${planResult}
+            \`\`\`
+            </details>`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
         env:
-          TFCMT_PR: "true"
-          TFCMT_PLAN: |
-            $(cat tfplan.txt || true)
+          PLAN_OUTCOME: ${{ steps.plan.outcome }}
 
       - name: Require deployment review before Apply
         uses: bobheadxi/deployments@v1
