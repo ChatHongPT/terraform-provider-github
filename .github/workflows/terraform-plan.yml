@@ -74,18 +74,23 @@ jobs:
             const match = allText.match(/Plan:\s*\d+\s+to add,\s*\d+\s+to change,\s*\d+\s+to destroy\.?/);
             const summary = match ? match[0] : 'No summary found';
 
+            console.log('Plan log content:', planLog);
+            console.log('Plan result content:', planResult);
+            console.log('Extracted summary:', summary);
+
             const fullOutput = (planResult || planLog || 'No plan output found').slice(0, 65000);
 
             const planOutcome = process.env.PLAN_OUTCOME || 'unknown';
             const exitCode = process.env.PLAN_EXIT_CODE || 'n/a';
-            
-            // Plan이 성공했고 summary가 있으면 changes detected로 간주
+
+            // Exit code 2는 변경사항이 있다는 정상 코드
             const hasChanges = summary.includes('to add') || summary.includes('to change') || summary.includes('to destroy');
-            const status = planOutcome === 'success' && hasChanges ? 'success (changes detected)' :
-                          planOutcome === 'success' && !hasChanges ? 'success (no changes)' :
-                          planOutcome === 'failure' ? 'error' :
+            const status = exitCode === '2' ? 'success (changes detected)' :
+                          exitCode === '0' ? 'success (no changes)' :
+                          exitCode === '1' ? 'error' :
+                          hasChanges ? 'success (changes detected)' :
                           `${planOutcome} (exit ${exitCode})`;
-            
+
             const comment = `## Plan Result (github)
 
             **Status:** ${status}
