@@ -75,9 +75,15 @@ jobs:
 
             const fullOutput = (planResult || planLog || 'No plan output found').slice(0, 65000);
 
+            const exitCode = process.env.PLAN_EXIT_CODE || 'n/a';
+            const status = exitCode === '2' ? 'success (changes detected)' : 
+                          exitCode === '0' ? 'success (no changes)' : 
+                          exitCode === '1' ? 'error' : 
+                          `${process.env.PLAN_OUTCOME || 'unknown'} (exit ${exitCode})`;
+            
             const comment = `## Plan Result (github)
 
-            **Status:** ${process.env.PLAN_OUTCOME || 'unknown'} (exit ${process.env.PLAN_EXIT_CODE || 'n/a'})
+            **Status:** ${status}
 
             **Plan Summary:**
             \`\`\`
