@@ -49,13 +49,14 @@ jobs:
         shell: bash
         continue-on-error: true
         run: |
-          set -o pipefail
           # detailed-exitcode: 0=no changes, 2=changes present, 1=error
-          terraform plan -detailed-exitcode -no-color -input=false -out=tfplan.binary |& tee plan.log
-          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+          terraform plan -detailed-exitcode -no-color -input=false -out=tfplan.binary > plan.log 2>&1
+          PLAN_EXIT_CODE=$?
+          echo "exit_code=$PLAN_EXIT_CODE" >> $GITHUB_OUTPUT
           if [ -f tfplan.binary ]; then
             terraform show -no-color tfplan.binary > tfplan.txt || true
           fi
+          exit $PLAN_EXIT_CODE
         env:
           TF_VAR_github_token: ${{ secrets.BOT_TOKEN }}
 
@@ -73,11 +74,26 @@ jobs:
             const match = allText.match(/Plan:\s*\d+\s+to add,\s*\d+\s+to change,\s*\d+\s+to destroy\.?/);
             const summary = match ? match[0] : 'No summary found';
 
+            console.log('Plan log content:', planLog);
+            console.log('Plan result content:', planResult);
+            console.log('Extracted summary:', summary);
+
             const fullOutput = (planResult || planLog || 'No plan output found').slice(0, 65000);
+
+            const planOutcome = process.env.PLAN_OUTCOME || 'unknown';
+            const exitCode = process.env.PLAN_EXIT_CODE || 'n/a';
+
+            // Exit code 2는 변경사항이 있다는 정상 코드
+            const hasChanges = summary.includes('to add') || summary.includes('to change') || summary.includes('to destroy');
+            const status = exitCode === '2' ? 'success (changes detected)' :
+                          exitCode === '0' ? 'success (no changes)' :
+                          exitCode === '1' ? 'error' :
+                          hasChanges ? 'success (changes detected)' :
+                          `${planOutcome} (exit ${exitCode})`;
 
             const comment = `## Plan Result (github)
 
-            **Status:** ${process.env.PLAN_OUTCOME || 'unknown'} (exit ${process.env.PLAN_EXIT_CODE || 'n/a'})
+            **Status:** ${status}
 
             **Plan Summary:**
             \`\`\`
